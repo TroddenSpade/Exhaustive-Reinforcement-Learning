@@ -20,13 +20,13 @@ class GradientBandit:
 
     def train(self, _bandit_):
         b = _bandit_(self.n_actions)  # bandit class
+        r_t = 0
         for s in range(self.steps):
             action = self.policy()
             reward = b.step(action)
-
             self.obtained_rewards[s] = reward
 
-            r_t = np.mean(self.obtained_rewards[0:s])
+            r_t += (reward - r_t) / (s + 1)  # Incremental Implementation
 
             pi = self.softmax_pi()
             self.H[self.H != action] -= self.alpha * (reward - r_t) * pi[self.H != action]
