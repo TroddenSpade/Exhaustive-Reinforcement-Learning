@@ -17,8 +17,8 @@ def policy(state):
 mcp = MCPrediction(env, policy)
 mcp.iterate(500000)
 
-v0 = mcp.value()[12:22, 1:11, 0]
-v1 = mcp.value()[12:22, 1:11, 1]
+v0 = mcp.get_value()[12:22, 1:11, 0]
+v1 = mcp.get_value()[12:22, 1:11, 1]
 
 x = range(12, 22)
 y = range(1, 11)
@@ -33,7 +33,7 @@ ax.set_zlim(-1.00, 1.00)
 ax.set_title('No Usable Ace')
 
 ax = fig.add_subplot(1, 2, 2, projection='3d')
-surf = ax.plot_surface(X, Y, v1, rstride=1, cstride=1, cmap=cm.coolwarm,
+ax.plot_surface(X, Y, v1, rstride=1, cstride=1, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
 ax.set_zlim(-1.00, 1.00)
 ax.set_title('Usable Ace')
@@ -42,11 +42,11 @@ plt.show()
 mces = MCExploringStarts(env)
 mces.iterate(1_000_000)
 
-p0 = mces.policy()[:, :, 0]
-p1 = mces.policy()[:, :, 1]
+p0 = mces.get_policy()[:, :, 0]
+p1 = mces.get_policy()[:, :, 1]
 
-v0 = mces.value()[12:22, 1:11, 0]
-v1 = mces.value()[12:22, 1:11, 1]
+v0 = mces.get_value()[12:22, 1:11, 0]
+v1 = mces.get_value()[12:22, 1:11, 1]
 
 x = range(12, 22)
 y = range(1, 11)
