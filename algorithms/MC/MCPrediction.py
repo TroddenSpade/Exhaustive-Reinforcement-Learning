@@ -41,5 +41,5 @@ class MCPrediction:
             state = next_state
         return states, actions, rewards, i + 1
 
-    def value(self):
+    def get_value(self):
         return self.V

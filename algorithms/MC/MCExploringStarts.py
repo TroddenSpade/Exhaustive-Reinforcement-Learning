@@ -46,10 +46,10 @@ class MCExploringStarts:
             state = next_state
         return state_action, rewards, i + 2
 
-    def policy(self):
+    def get_policy(self):
         return self.pi
     
-    def value(self):
+    def get_value(self):
         return self.Q.max(axis=3)
 
     @staticmethod
