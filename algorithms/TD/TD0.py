@@ -20,9 +20,12 @@ class TD0:
     def stats(self, n_runs, n_episodes):
         rewards = np.zeros(n_episodes)
         for _ in tqdm(range(n_runs)):
-            self.Q = np.zeros(self.env.state_space + (self.env.action_space,))
+            self.reset()
             rewards += self.estimate(n_episodes)
         return rewards / n_runs
+
+    def reset(self):
+        self.Q = np.zeros(self.env.state_space + (self.env.action_space,))
 
     def get_policy(self):
         return self.Q.argmax(axis=2)
