@@ -1,6 +1,12 @@
 # Exhaustive Reinforcement Learning
 
 ## Pseudocode and Algorithms
+### Model Taxonomy
+* Model-Free Methods
+
+* Model-Based Methods
+
+### Intro To RL Contents
 * Tabular Methods
     + Bandit Problem
     + Dynamic Programming
@@ -20,10 +26,11 @@
     + Eligibility Traces
     + Policy Gradient Methods
         - REINFORCE
+        - one-step Actor-Critic
 
 * Approximate Solution With Deep Neural Network
 
-## Problems
+## Environments
 
 * Black Jack
     + Monte Carlo Prediction
@@ -39,8 +46,36 @@
     + Semi-Gradient SARSA 
     + Semi-Gradient n-step SARSA
 
+* Short Corridor Gridworld
+    + REINFORCE [with Baseline]
+
+* Pendulum Swing-Up
+    + Actor-Critic using Tile-coding
+    + Actor-Critic Countinous Action Space
+
+* CartPole
+    + Fully Connected Q-function
+
 ## Key Papers
 
-## Resourses
+## Relevant Resourses
+
+* Textbooks
+    + [Reinforcement Learning An Introduction, Richard S. Sutton and Andrew G. Barto](http://incompleteideas.net/book/the-book.html)
+
+* Courses
+    + Artificial Inteligence
+        - [UC Berkeley CS188: Introduction to Artificial Intelligence]()
+
+    + Reinforcement Learning
+        - [Stanford CS234: Reinforcement Learning](https://web.stanford.edu/class/cs234/)
+
+    + Deep Reinforcement Learning
+        - [UC Berkeley CS285: Deep Reinforcement Learning](http://rail.eecs.berkeley.edu/deeprlcourse/)
+
+* Blogs
+    + [Lil'Log - Lilian Weng](https://lilianweng.github.io/lil-log/)
+
+    + [Seita's Place - Daniel Seita](https://danieltakeshi.github.io/archive.html)
 
 ## Contribution
