@@ -1,5 +1,7 @@
 # Exhaustive Reinforcement Learning
 
+## Motivations
+
 ## Pseudocode and Algorithms
 ### Model Taxonomy
 * Model-Free Methods
@@ -27,6 +29,9 @@
     + Policy Gradient Methods
         - REINFORCE
         - one-step Actor-Critic
+
+* Deep Reinforcement Learning Methods
+    + Neural Fitted Q-function (NFQ)
 
 * Approximate Solution With Deep Neural Network
 
@@ -58,6 +63,11 @@
 
 ## Key Papers
 
+* Deep Reinforcement Learning
+    + NFQ :: [Riedmiller, Martin. (2005). Neural fitted Q iteration](https://link.springer.com/chapter/10.1007/11564096_32)
+    + DQN :: [V. Mnih, K. Kavukcuoglu, D. Silver, A. Graves, I. Antonoglou, D. Wierstra, & M. Riedmiller. (2013). Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602)
+    
+
 ## Relevant Resourses
 
 * Textbooks
@@ -73,9 +83,9 @@
     + Deep Reinforcement Learning
         - [UC Berkeley CS285: Deep Reinforcement Learning](http://rail.eecs.berkeley.edu/deeprlcourse/)
 
-* Blogs
+* Useful Blogs
     + [Lil'Log - Lilian Weng](https://lilianweng.github.io/lil-log/)
-
-    + [Seita's Place - Daniel Seita](https://danieltakeshi.github.io/archive.html)
+    + [Seita's Place - Daniel Seita](https://danieltakeshi.github.io/)
+    + [endtoend.ai - Seungjae Ryan Lee](https://endtoend.ai)
 
 ## Contribution
