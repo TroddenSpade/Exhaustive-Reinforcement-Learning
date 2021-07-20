@@ -3,7 +3,7 @@
     by University of Alberta & Alberta Machine Intelligence Institute
 '''
 
-from environment import BaseEnvironment
+from src.environment import BaseEnvironment
 import numpy as np
 
 class PendulumEnvironment(BaseEnvironment):
