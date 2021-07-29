@@ -1,7 +1,14 @@
+import time
+import pickle
+from tqdm import tqdm
+
 import gym
 import torch
 import numpy as np
+from torch import tensor
 import torch.multiprocessing as mp
+import matplotlib.pyplot as plt
+
 
 ## Fully-Connected Policy Action Network
 class FCPA(torch.nn.Module):
@@ -139,11 +146,12 @@ class SharedAdam(torch.optim.Adam):
 class Worker(mp.Process):
     def __init__(self, id, global_T, create_env, fcpa, fcv, buffer,
                 global_policy_nn, global_value_nn, 
-                shared_policy_optimizer, shared_value_optimizer, n_step_max, gamma=0.99, T_max=3000):
+                shared_policy_optimizer, shared_value_optimizer, 
+                results, n_step_max, T_max=3000, gamma=0.99):
         super().__init__()
         self.id = id
         self.env = create_env()
-        self.n_actions = self.env.action_space.n
+        # self.n_actions = self.env.action_space.n
         
         self.buffer = buffer
         self.policy_nn = fcpa
@@ -156,6 +164,7 @@ class Worker(mp.Process):
         self.shared_policy_optimizer = shared_policy_optimizer
         self.shared_value_optimizer = shared_value_optimizer
 
+        self.results = results
         self.T = global_T
         self.T_MAX = T_max
         self.n_step_max = n_step_max
@@ -222,8 +231,9 @@ class Worker(mp.Process):
 
 
     def run(self):
+        start_time = time.time()
         t = 1
-        while self.T.value <= self.T_MAX:
+        while True:
             sum_rewards = 0
             t_start = t
             state = self.env.reset()
@@ -253,16 +263,22 @@ class Worker(mp.Process):
                 state = state_p
 
             with self.T.get_lock():
+                if self.T.value >= self.T_MAX: break
+                self.results['rewards'][self.T.value] = sum_rewards
+                self.results['times'][self.T.value] = time.time() - start_time
                 self.T.value += 1
                 
-            print(self.id, 'episode ', self.T.value, 'reward %.1f' % sum_rewards)
+            print("Worker:", self.id, "- Episode:", self.T.value, "- Reward: %d" % sum_rewards)
 
 
 class A3C:
     def __init__(self, create_env, FCPA, FCV, Buffer, Worker,
-                 n_step_max=50, max_episodes=3000,
-                 policy_lr=0.0005, value_lr=0.0007):
+                 n_step_max=50, policy_lr=0.0005, value_lr=0.0007):
         self.create_env = create_env
+        env = create_env()
+        self.state_space  = env.observation_space.shape[0]
+        self.action_space = env.action_space.n
+
         self.Worker = Worker
         self.FCPA = FCPA
         self.FCV = FCV
@@ -271,30 +287,96 @@ class A3C:
         self.policy_lr = policy_lr
         self.value_lr = value_lr
 
-        self.global_policy_nn = FCPA(4, 2, (128,64)).share_memory()
-        self.global_value_nn = FCV(4, (256,128)).share_memory()
+        self.global_policy_nn = FCPA(self.state_space, self.action_space, (128,64)).share_memory()
+        self.global_value_nn = FCV(self.state_space, (256,128)).share_memory()
         self.shared_policy_optimizer = SharedAdam(self.global_policy_nn.parameters(), lr=policy_lr)
         self.shared_value_optimizer = SharedAdam(self.global_value_nn.parameters(), lr=value_lr)
 
-        self.max_episodes = max_episodes
         self.n_step_max = n_step_max
         self.global_T = mp.Value('i', 0)
-        
 
-    def train(self, n_workers):
+
+    def train(self, max_episodes, n_workers):
+        results = {}
+        results['rewards'] = torch.zeros((max_episodes))
+        results['times'] = torch.zeros((max_episodes))
         workers = []
         for i in range(n_workers):
             worker = self.Worker(i, self.global_T, self.create_env, 
-                                 self.FCPA(4, 2, (128,64)), self.FCV(4, (256,128)), self.Buffer(),
+                                 self.FCPA(self.state_space, self.action_space, (128,64)), 
+                                 self.FCV(self.state_space, (256,128)), 
+                                 self.Buffer(),
                                  self.global_policy_nn, self.global_value_nn,
                                  self.shared_policy_optimizer, self.shared_value_optimizer,
-                                 self.n_step_max)
+                                 results, self.n_step_max, max_episodes)
             workers.append(worker)
 
         [w.start() for w in workers]
         [w.join() for w in workers]
 
+        return results
+
+
+    def reset(self):
+        self.global_T = mp.Value('i', 0)
+        self.global_policy_nn.reset()
+        self.global_value_nn.reset()
+
+
+    def iterate(self, n_runs, max_episodes, n_workers):
+        results = {}
+        results['rewards'] = torch.zeros((n_runs, max_episodes))
+        results['smoothed_rewards'] = torch.zeros((n_runs, max_episodes))
+        results['times'] = torch.zeros((n_runs, max_episodes))
+        results['smoothed_times'] = torch.zeros((n_runs, max_episodes))
+
+        for i in tqdm(range(n_runs)):
+            self.reset()
+            res = self.train(max_episodes, n_workers)
+
+            results['rewards'][i] = res["rewards"]
+            results['smoothed_rewards'][i] = torch.tensor([
+                torch.mean(res["rewards"][max(i-99,0):i+1]) for i in range(max_episodes)])
+            results['times'][i] = res["times"]
+            results['smoothed_times'][i] = torch.tensor([
+                torch.mean(res["times"][max(i-9,0):i+1]) for i in range(max_episodes)])
+        return results
+
 
 if __name__ == "__main__":
-    agent = A3C(create_env, FCPA, FCV, Buffer, Worker, n_step_max=5)
-    agent.train(8)
+    agent = A3C(create_env, FCPA, FCV, Buffer, Worker, n_step_max=50)
+    res = agent.iterate(n_runs=5, max_episodes=1000, n_workers=4)
+
+    file = open("A3C_res.pkl", "wb")
+    pickle.dump(res, file)
+    file.close()
+
+    # file = open("A3C_res.pkl",'br')
+    # res = pickle.load(file)
+
+    smoothed_times_mean = torch.mean(res['smoothed_times'], axis=0)
+    smoothed_times_min = torch.min(res['smoothed_times'], axis=0)[0]
+    smoothed_times_max = torch.max(res['smoothed_times'], axis=0)[0]
+
+    smoothed_rewards_mean = torch.mean(res['smoothed_rewards'], axis=0)
+    smoothed_rewards_min = torch.min(res['smoothed_rewards'], axis=0)[0]
+    smoothed_rewards_max = torch.max(res['smoothed_rewards'], axis=0)[0]
+
+    plt.figure(1)
+    plt.plot(smoothed_times_min, 'y', linewidth=1)
+    plt.plot(smoothed_times_max, 'y', linewidth=1)
+    plt.plot(smoothed_times_mean, 'y', label='NFQ', linewidth=2)
+    plt.fill_between(
+        torch.arange(len(smoothed_times_mean)), 
+        smoothed_times_min, smoothed_times_max, facecolor='y', alpha=0.2)
+
+    plt.figure(2)
+    plt.plot([0,1000],[500,500], '--', color='crimson')
+    plt.plot(smoothed_rewards_min, 'deepskyblue', linewidth=1)
+    plt.plot(smoothed_rewards_max, 'deepskyblue', linewidth=1)
+    plt.plot(smoothed_rewards_mean, 'deepskyblue', label='NFQ', linewidth=2)
+    plt.fill_between(
+        torch.arange(len(smoothed_rewards_mean)), 
+        smoothed_rewards_min, smoothed_rewards_max, facecolor='deepskyblue', alpha=0.2)
+
+    plt.show()
