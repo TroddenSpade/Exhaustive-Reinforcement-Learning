@@ -33,3 +33,10 @@ class ReplayBuffer:
             self.rewards[indices], \
             self.states_p[indices], \
             self.is_terminals[indices]
+
+    def clear(self):
+        self.states = np.empty_like(self.states)
+        self.actions = np.empty_like(self.actions)
+        self.rewards = np.empty_like(self.rewards)
+        self.states_p = np.empty_like(self.states_p)
+        self.is_terminals = np.empty_like(self.is_terminals)
