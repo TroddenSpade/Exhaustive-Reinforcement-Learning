@@ -19,7 +19,5 @@ class OUNoise():
         return x
 
     def reset(self):
-        if self.x0 == None:
-            self.x_prev = np.zeros(self.n_actions)
-        else:
-            self.x_prev = self.x0
+        self.mu = np.zeros_like(self.mu)
+        self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
