@@ -2,7 +2,14 @@ import torch
 
 #
 class FCQ(torch.nn.Module):
-    def __init__(self, input_size, hidden_layers,
+    '''
+    states -> ...states_hidden_layers... 🡖 
+                                           ...shared_hidden_layers... -> q
+                                 actions 🡕 
+    '''
+    
+    def __init__(self, states_input_size, actions_input_size, 
+                states_hidden_layers, shared_hidden_layers,
                 activation_fn=torch.nn.functional.relu,
                 optimizer=torch.optim.Adam, learning_rate=0.0005,
                 grad_max_norm=float("inf")) -> None:
@@ -10,18 +17,26 @@ class FCQ(torch.nn.Module):
         self.grad_max_norm = grad_max_norm
         self.activation_fn = activation_fn
 
-        self.hidden_layers = torch.nn.ModuleList()
-        self.input_layer = torch.nn.Linear(input_size, hidden_layers[0])
-        for i in range(len(hidden_layers)-1):
-            self.hidden_layers.append(torch.nn.Linear(hidden_layers[i], hidden_layers[i+1]))
-        self.output_layer = torch.nn.Linear(hidden_layers[-1], 1)
-
-        self.batch_norms = []
-        for layer_size in (hidden_layers):
-            self.batch_norms.append(torch.nn.LayerNorm(layer_size))
+        self.states_hidden_norms = []
+        self.states_hidden_layers = torch.nn.ModuleList()
+        prev_size = states_input_size
+        for layer_size in states_hidden_layers:
+            self.states_hidden_layers.append(torch.nn.Linear(prev_size, layer_size))
+            self.states_hidden_norms.append(torch.nn.LayerNorm(layer_size))
+            prev_size = layer_size
         
+        self.shared_hidden_norms = []
+        self.shared_hidden_layers = torch.nn.ModuleList()
+        prev_size = prev_size + actions_input_size
+        for layer_size in shared_hidden_layers:
+            self.shared_hidden_layers.append(torch.nn.Linear(prev_size, layer_size))
+            self.shared_hidden_norms.append(torch.nn.LayerNorm(layer_size))
+            prev_size = layer_size
+
+        self.output_layer = torch.nn.Linear(prev_size, 1)
+
         self.optimizer = optimizer(self.parameters(), lr=learning_rate)
-        self.optimizer.zero_grad()
+
 
     def format_(self, states, actions):
         if not isinstance(states, torch.Tensor):
@@ -30,21 +45,29 @@ class FCQ(torch.nn.Module):
             actions = torch.tensor(actions, dtype=torch.float32)
         return states, actions
 
-    def forward(self, states, actions):
-        states, actions = self.format_(states, actions)
-        x = torch.cat((states, actions), dim=1)
 
-        x = self.activation_fn(self.input_layer(x))
-        for hidden_layer in self.hidden_layers:
-            x = self.activation_fn(hidden_layer(x))
+    def forward(self, states, actions):
+        x, actions = self.format_(states, actions)
+
+        for hidden_layer, norm_layer in zip(self.states_hidden_layers, self.states_hidden_norms):
+            x = self.activation_fn(norm_layer(hidden_layer(x)))
+
+        x = torch.cat((x, actions), dim=1)
+
+        for hidden_layer, norm_layer in zip(self.shared_hidden_layers, self.shared_hidden_norms):
+            x = self.activation_fn(norm_layer(hidden_layer(x)))
+            
         return self.output_layer(x)
 
-    def train(self, loss):
+
+    def optimize(self, loss):
+        self.train()
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
             self.parameters(), self.grad_max_norm)
         self.optimizer.step()
+
 
     @staticmethod
     def reset_weights(m):
