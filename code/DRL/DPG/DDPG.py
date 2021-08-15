@@ -1,6 +1,8 @@
 import time
 import torch
 from tqdm import tqdm
+from PIL import Image
+
 
 from code.DRL.mem.ReplayBuffer import ReplayBuffer
 from code.DRL.nn.torch.FullyConnectedDeterministicPolicy import FCDP
@@ -16,25 +18,28 @@ class DDPG:
 
         self.env = create_env_fn()
         n_states, n_actions = self.env.observation_space.shape[0], self.env.action_space.shape[0]
+        action_max = torch.tensor(self.env.action_space.high)
+        
         self.min_buffer = min_buffer
         self.replay_buffer = ReplayBuffer(state_shape=self.env.observation_space.shape,
                                           action_space=n_actions)
-
-        self.actor_online = FCDP(input_size=n_states, output_size=n_actions, **actor_kwargs)
-        self.actor_target = FCDP(input_size=n_states, output_size=n_actions, **actor_kwargs)
-        self.critic_online = FCQ(input_size=n_states+n_actions, **critic_kwargs)
-        self.critic_target = FCQ(input_size=n_states+n_actions, **critic_kwargs)
-
         self.noise = OUNoise(n_actions)
 
+        self.create_FCDP = lambda : FCDP(input_size=n_states, output_size=n_actions,
+                                        action_max=action_max, **actor_kwargs)
+        self.create_FCQ = lambda : FCQ(states_input_size=n_states, 
+                                       actions_input_size=n_actions, **critic_kwargs)
 
-    def reset(self):
+
+    def initialize(self):
         self.noise.reset()
-        self.actor_online.reset()
-        self.actor_target.reset()
-        self.critic_online.reset()
-        self.critic_target.reset()
         self.replay_buffer.clear()
+
+        self.actor_online = self.create_FCDP()
+        self.actor_target = self.create_FCDP()
+        self.critic_online = self.create_FCQ()
+        self.critic_target = self.create_FCQ()
+
         self.update_networks(reset=True)
 
     
@@ -49,10 +54,29 @@ class DDPG:
             target.data.copy_((1.0 - tau) * target.data + tau * online.data)
 
         
-    def choose_noisy_action(self, state):
+    def noisy_policy(self, state):
+        self.actor_online.eval()
         mu = self.actor_online(state).detach().cpu().numpy()
         mu_noisy = mu + self.noise()
         return mu_noisy
+
+    def greedy_policy(self, state):
+        self.actor_online.eval()
+        mu = self.actor_online(state).detach().cpu().numpy()
+        return mu
+
+    
+    def play(self):
+        frames = []
+        state = self.env.reset()
+        while True:
+            frames.append(Image.fromarray(self.env.render(mode='rgb_array')))
+            action = self.greedy_policy(state)
+            state_p, _, done, _ = self.env.step(action)
+            
+            if done: break
+            state = state_p
+        return frames
 
 
     def train(self, n_episodes):
@@ -65,7 +89,7 @@ class DDPG:
             sum_rewards = 0
             state = self.env.reset()
             while True:
-                action = self.choose_noisy_action(state)
+                action = self.noisy_policy(state)
                 state_p, reward, done, info = self.env.step(action)
                 is_truncated = 'TimeLimit.truncated' in info and info['TimeLimit.truncated']
                 is_terminal = done and not is_truncated
@@ -84,7 +108,9 @@ class DDPG:
             results['rewards'][i] = sum_rewards
             results['times'][i] = time.time() - start_time
 
-            print("Episode:", i, "- Avg Reward: %d" % sum_rewards)
+            print("Episode:", i,
+                  "- Reward: %d" % sum_rewards, 
+                  "- Avg Reward: %d" % torch.mean(results["rewards"][max(i-99,0):i+1]))
 
         return results
 
@@ -93,19 +119,23 @@ class DDPG:
         rewards = torch.tensor(rewards).unsqueeze(dim=1)
         is_terminals = torch.tensor(is_terminals).unsqueeze(dim=1)
 
+        self.actor_target.eval()
         target_actions_p = self.actor_target(states_p)
+        self.critic_target.eval()
         q_sa_p = self.critic_target(
                                 states_p, target_actions_p).detach()
         q_target = rewards + self.gamma * q_sa_p * (1 - is_terminals)
+        self.critic_online.eval()
         q_sa = self.critic_online(states, actions)
         td_error = q_sa - q_target
-        q_loss = torch.mean(0.5 * td_error**2)
-        self.critic_online.train(q_loss)
+        q_loss = 0.5*torch.mean(td_error.pow(2))
+        self.critic_online.optimize(q_loss)
 
+        self.actor_online.eval()
         online_mu = self.actor_online(states)
         q_s_mu = self.critic_online(states, online_mu)
         policy_loss = -torch.mean(q_s_mu)
-        self.actor_online.train(policy_loss)
+        self.actor_online.optimize(policy_loss)
 
 
     def iterate(self, n_runs, n_episodes):
@@ -114,9 +144,10 @@ class DDPG:
         results['smoothed_rewards'] = torch.zeros((n_runs, n_episodes))
         results['times'] = torch.zeros((n_runs, n_episodes))
         results['smoothed_times'] = torch.zeros((n_runs, n_episodes))
+        results['frames'] = []
 
         for i in tqdm(range(n_runs)):
-            self.reset()
+            self.initialize()
             res = self.train(n_episodes)
 
             results['rewards'][i] = res["rewards"]
@@ -125,6 +156,9 @@ class DDPG:
             results['times'][i] = res["times"]
             results['smoothed_times'][i] = torch.tensor([
                 torch.mean(res["times"][max(i-9,0):i+1]) for i in range(n_episodes)])
+
+            frames = self.play()
+            results['frames'].append(frames)
 
         self.env.close()
         return results
