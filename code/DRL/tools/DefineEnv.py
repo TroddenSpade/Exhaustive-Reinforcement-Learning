@@ -1,6 +1,8 @@
 import gym
 
-def define_env(name):
-    def create_env():
-        return gym.make(name)
-    return create_env
+class DefineEnv:
+    def __init__(self, name):
+        self.name = name
+    
+    def __call__(self):
+        return gym.make(self.name)
