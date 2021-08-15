@@ -1,10 +1,12 @@
 import numpy as np
 
 class ReplayBuffer:
-    def __init__(self, state_shape, action_space, max_size=50000):
-        self.max_size = max_size
+    def __init__(self, state_shape, action_space, 
+                 batch_size=64, max_size=50000):
         self.next = 0
         self.size = 0
+        self.max_size = max_size
+        self.batch_size = batch_size
 
         self.states = np.empty(shape=(max_size, *state_shape))
         self.actions = np.empty(shape=(max_size, action_space))
@@ -25,7 +27,9 @@ class ReplayBuffer:
         self.size = min(self.size + 1, self.max_size)
         self.next = self.next % self.max_size
 
-    def sample(self, batch_size=64):
+    def sample(self, batch_size=None):
+        batch_size = self.batch_size \
+                        if batch_size is None else batch_size
         indices = np.random.choice(self.size, size=batch_size,
                                    replace=False)
         return self.states[indices], \
@@ -35,6 +39,8 @@ class ReplayBuffer:
             self.is_terminals[indices]
 
     def clear(self):
+        self.next = 0
+        self.size = 0
         self.states = np.empty_like(self.states)
         self.actions = np.empty_like(self.actions)
         self.rewards = np.empty_like(self.rewards)
