@@ -3,7 +3,7 @@ import torch
 #
 class FCDP(torch.nn.Module):
     def __init__(self, input_size, output_size, hidden_layers,
-                action_max,
+                action_maxs,
                 activation_fn=torch.nn.functional.relu,
                 out_activation_fn=torch.tanh,
                 optimizer=torch.optim.Adam, learning_rate=0.0005,
@@ -12,7 +12,7 @@ class FCDP(torch.nn.Module):
         self.grad_max_norm = grad_max_norm
         self.activation_fn = activation_fn
         self.out_activation_fn = out_activation_fn
-        self.action_max = action_max
+        self.action_maxs = torch.tensor(action_maxs)
 
         self.hidden_norms = []
         self.hidden_layers = torch.nn.ModuleList()
@@ -38,7 +38,7 @@ class FCDP(torch.nn.Module):
         for hidden_layer, norm_layer in zip(self.hidden_layers, self.hidden_norms):
             x = self.activation_fn(norm_layer(hidden_layer(x)))
         x = self.out_activation_fn(self.output_layer(x))
-        return x * self.action_max
+        return x * self.action_maxs
         
     
     def optimize(self, loss):
