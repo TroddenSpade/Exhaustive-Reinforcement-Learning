@@ -21,7 +21,7 @@ class FCDP(torch.nn.Module):
             self.hidden_layers.append(torch.nn.Linear(prev_size, layer_size))
             self.hidden_norms.append(torch.nn.LayerNorm(layer_size))
             prev_size = layer_size
-        self.output_layer = torch.nn.Linear(layer_size, output_size)
+        self.output_layer = torch.nn.Linear(prev_size, output_size)
 
         self.optimizer = optimizer(self.parameters(), lr=learning_rate)
 
