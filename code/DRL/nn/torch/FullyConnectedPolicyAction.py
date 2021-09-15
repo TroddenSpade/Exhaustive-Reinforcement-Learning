@@ -28,12 +28,12 @@ class FCPA(torch.nn.Module):
             x = self.activation_fn(hidden_layer(x))
         return self.output_layer(x)
 
-    def train(self, loss):
-        self.optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(
-            self.parameters(), self.grad_max_norm)
-        self.optimizer.step()
+    # def train(self, loss):
+    #     self.optimizer.zero_grad()
+    #     loss.backward()
+    #     torch.nn.utils.clip_grad_norm_(
+    #         self.parameters(), self.grad_max_norm)
+    #     self.optimizer.step()
 
     def softmax_policy(self, states):
         logits = self(states)
