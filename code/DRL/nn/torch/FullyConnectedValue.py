@@ -2,7 +2,7 @@ import torch
 
 ## Fully-Connected Value Network
 class FCV(torch.nn.Module):
-    def __init__(self, input_shape, hidden_layers,
+    def __init__(self, input_size, hidden_layers,
                 activation_fn=torch.nn.functional.relu,
                 optimizer=torch.optim.Adam, learning_rate=0.0005,
                 grad_max_norm=float("inf")) -> None:
@@ -10,7 +10,7 @@ class FCV(torch.nn.Module):
         self.grad_max_norm = grad_max_norm
         self.activation_fn = activation_fn
 
-        self.input_layer = torch.nn.Linear(input_shape, hidden_layers[0])
+        self.input_layer = torch.nn.Linear(input_size, hidden_layers[0])
         self.hidden_layers = torch.nn.ModuleList()
         for i in range(len(hidden_layers)-1):
             self.hidden_layers.append(torch.nn.Linear(hidden_layers[i], hidden_layers[i+1]))
@@ -26,13 +26,6 @@ class FCV(torch.nn.Module):
         for hidden_layer in self.hidden_layers:
             x = self.activation_fn(hidden_layer(x))
         return self.output_layer(x)
-
-    def train(self, loss):
-        self.optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(
-            self.parameters(), self.grad_max_norm)
-        self.optimizer.step()
 
     @staticmethod
     def reset_weights(m):
