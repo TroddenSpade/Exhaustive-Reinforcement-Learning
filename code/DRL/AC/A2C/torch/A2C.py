@@ -7,7 +7,7 @@ import numpy as np
 from .EnvironmentCoordinator import EnvironmentCoordinator
 from code.DRL.nn.torch.FullyConnectedPolicyAction import FCPA
 from code.DRL.nn.torch.FullyConnectedValue import FCV
-from code.DRL.tools.ReplayBuffer import Buffer
+from code.DRL.tools.Buffer import Buffer
 
 class A2C:
     def __init__(self, create_env_fn,

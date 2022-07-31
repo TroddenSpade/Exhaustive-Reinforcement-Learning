@@ -5,7 +5,7 @@ import torch.multiprocessing as mp
 from .Worker import Worker
 from code.DRL.nn.torch.FullyConnectedPolicyAction import FCPA
 from code.DRL.nn.torch.FullyConnectedValue import FCV
-from code.DRL.tools.ReplayBuffer import Buffer
+from code.DRL.mem.Buffer import Buffer
 
 class A3C:
     def __init__(self, create_env_fn, 
