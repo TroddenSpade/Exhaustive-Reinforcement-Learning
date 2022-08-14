@@ -1,8 +1,8 @@
 # Exhaustive Reinforcement Learning
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis et augue bibendum, vestibulum neque quis, ultricies mauris. Nunc aliquet velit in nisi rutrum luctus. Etiam nec consequat dui. Phasellus tincidunt, odio non gravida efficitur, enim odio varius dolor, fermentum auctor massa arcu quis ipsum. Sed vel placerat nisi. Nam imperdiet tincidunt facilisis. Curabitur eu leo massa.
+This repository aims to exhaustively implement various Deep Reinforcement Learning concepts covering most of the well-known resources from textbooks to lectures. For each notion, concise notes are provided to explain, and associated algorithms are implemented in addition to their environments and peripheral modules. At the end of this readme file, Reinforcement Learning's key papers and worthwhile resources are cited.
 
 ## Motivations
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis et augue bibendum, vestibulum neque quis, ultricies mauris. Nunc aliquet velit in nisi rutrum luctus. Etiam nec consequat dui. Phasellus tincidunt, odio non gravida efficitur, enim odio varius dolor, fermentum auctor massa arcu quis ipsum. Sed vel placerat nisi. Nam imperdiet tincidunt facilisis. Curabitur eu leo massa.
+
 
 ## Table of Contents
 * [Pseudocode and Algorithms](#pseudocode-and-algorithms)
