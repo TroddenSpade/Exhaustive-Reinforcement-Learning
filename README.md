@@ -190,4 +190,4 @@ This repository aims to exhaustively implement various Deep Reinforcement Learni
     
 
 ## Contribution
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis et augue bibendum, vestibulum neque quis, ultricies mauris. Nunc aliquet velit in nisi rutrum luctus. Etiam nec consequat dui. Phasellus tincidunt, odio non gravida efficitur, enim odio varius dolor, fermentum auctor massa arcu quis ipsum. Sed vel placerat nisi. Nam imperdiet tincidunt facilisis. Curabitur eu leo massa.
+When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the [`me`](https://github.com/TroddenSpade) before making a change.
